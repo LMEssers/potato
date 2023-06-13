@@ -3,6 +3,7 @@
 
 from __future__ import print_function
 
+
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
@@ -31,10 +32,6 @@ written by Martin Hofmann
 Version 0.1.1 - April 28, 2017
 """
 
-import sys
-import time
-import matplotlib.pyplot as plt
-
 #Uncomment the following when not using setup.py or pip to install the packages
 #Replace the path to the appropriate package location
 #sys.path.append('/path/to/pyrgbdriverkit/')
@@ -47,7 +44,7 @@ from rgbdriverkit.calibratedspectrometer import SpectrumData
 from rgbdriverkit.calibratedspectrometer import SpectrometerProcessing
 
 
-def main(line, line_check, flake_delay):
+def main(index_open_probe, serial_check, flake_delay, subcoords_pp0, subcoords_pp1, subcoords_pe0, subcoords_pe1):
     try:
         while(True):
             
@@ -56,11 +53,11 @@ def main(line, line_check, flake_delay):
             
             
             
-            line = ser.readline().decode('utf-8').rstrip()
-            if ser.in_waiting > 0:
-                ser.reset_input_buffer()
+            index_open_probe = ser_arduino.readline().decode('utf-8').rstrip()
+            if ser_arduino.in_waiting > 0:
+                ser_arduino.reset_input_buffer()
                 #print('test')
-            print(line)
+            
                                              
             
             #lightsensor0 = lightsensor_pin0.input(bias='pull-down') #if sensor pin is HIGH, set variable to True
@@ -101,95 +98,83 @@ def main(line, line_check, flake_delay):
             #else:
             #    activate_spectrometer = False # Arrays are not of the same length
             
-            #global line_check
+            #global serial_check
             
             #code for activation of measuring spectrum
             #if activate_spectrometer:
-            #if line != line_check:
-                
-            #line_check = line
-                
-            #open_probe = arr_probe #overwrite the indexes of open probes to only execute this code ones
-            #index_open_probe = [i for i, val_spectrometer in enumerate(open_probe) if val_spectrometer] #output the number of the open probe
-            index_open_probe = line
-                
-            #print(index_open_probe)
-                
-            #start exposure
-            q.start_exposure(1)
-            #print("Waiting for spectrum...")
-            while not q.available_spectra:
-                #print("measuring..")
-                time.sleep(0.01)
+            if index_open_probe != serial_check and index_open_probe != '':
 
-            #print("Spectrum available")
-            spec = q.get_spectrum_data() # Get spectrum with meta data
-            #print("TimeStamp:", spec.TimeStamp)
-            #print("LoadLevel: %.2f" % spec.LoadLevel)
-            #print("ExposureTime: " + str(spec.ExposureTime) + "s")
-            #print("Averaging: " + str(spec.Averaging))
-               
+                print(index_open_probe)   
+
+                serial_check = index_open_probe
                 
-            #print figure of the spectrum
-            if False:
-                print("Plot spectrum and save figure to file 'spectrum.png'.")
-                #import matplotlib.pyplot as plt
-                # Create plot
-                plt.clf()
-                plt.plot(nm, spec.Spectrum)
-                plt.grid(True)
-                plt.title('Spectrum')
-                plt.xlabel('Wavelength (nm)')
-                plt.ylabel('ADCvalues')
-                plt.draw()
-                plt.show()
-                # save figure to file
-                plt.savefig("spectrum.png")
-               
-            plt.clf() #clear plot
-            lines = plt.plot(nm, spec.Spectrum) #get spectrum
-            lines_spectrum = lines[0].get_xydata() #get xy array of spectrum
+                #open_probe = arr_probe #overwrite the indexes of open probes to only execute this code ones
+                #index_open_probe = [i for i, val_spectrometer in enumerate(open_probe) if val_spectrometer] #output the number of the open probe
                 
-            #print("Done")
-                
-            #print(lines_spectrum)
-                
-                
-                
-            x_coordinates = lines_spectrum[:,0] #split xy array into individual arrays
-            y_coordinates = lines_spectrum[:,1]
-            #print(x_coordinates)
-                
-            #to add more peaks/ranges to check -> np.logical_or(np.logical_or(np.logical_and(x), y), z) -- where y and z can each contain an np.logical_or and np.logical_and statement
-            subcoords_pp0 = [index for index,value in enumerate(x_coordinates) if np.logical_and(value > 1180, value < 1240)] #get index of wavelengths in the spectrum
-            subcoords_pp1 = [index for index,value in enumerate(x_coordinates) if np.logical_and(value > 1530, value < 1550)]
-            subcoords_pe0 = [index for index,value in enumerate(x_coordinates) if np.logical_and(value > 1180, value < 1240)] #get index of wavelengths in the spectrum
-            subcoords_pe1 = [index for index,value in enumerate(x_coordinates) if np.logical_and(value > 1530, value < 1550)]
-            #subcoords_pvc = [index for index,value in enumerate(x_coordinates) if np.logical_and(value > 1400, value < 1600)] #get index of wavelengths in the spectrum 
-                                           
-            #print("range")
-            #print(y_coordinates[subcoords])
-                
-            if any(np.logical_and(x > 900, x < 1300) for x in y_coordinates[subcoords_pp0]) and any(np.logical_and(x > 1150, x < 1750) for x in y_coordinates[subcoords_pp1]): #if any value in the array exceeds the threshhold, a material is identified
-                start_flake_thread = True #True if the material needs to be sorted out, false if not
-                print("pp")
                     
-            elif any(np.logical_and(x > 300, x < 600) for x in y_coordinates[subcoords_pe0]) and any(np.logical_and(x > 700, x < 1000) for x in y_coordinates[subcoords_pe1]): #if any value in the array exceeds the threshhold, a material is identified
-                start_flake_thread = True
-                print("pe")
-              
-            #elif any(x > spectrum_threshold for x in y_coordinates[subcoords_pvc]): #if any value in the array exceeds the threshhold, a material is identified
-            #    start_flake_thread = True
-                #print("pvc")
+                #print(index_open_probe)
                     
-            else: #alse no material is identified
-                start_flake_thread = False
-              
+                #start exposure
+                q.start_exposure(1)
+                #print("Waiting for spectrum...")
+                while not q.available_spectra:
+                    #print("measuring..")
+                    time.sleep(0.0001)
+
+                #print("Spectrum available")
+                spec = q.get_spectrum_data() # Get spectrum with meta data
+                #print("TimeStamp:", spec.TimeStamp)
+                #print("LoadLevel: %.2f" % spec.LoadLevel)
+                #print("ExposureTime: " + str(spec.ExposureTime) + "s")
+                #print("Averaging: " + str(spec.Averaging))
+
+
+                #print figure of the spectrum
+                if False:
+                    print("Plot spectrum and save figure to file 'spectrum.png'.")
+                    #import matplotlib.pyplot as plt
+                    # Create plot
+                    plt.clf()
+                    plt.plot(nm, spec.Spectrum)
+                    plt.grid(True)
+                    plt.title('Spectrum')
+                    plt.xlabel('Wavelength (nm)')
+                    plt.ylabel('ADCvalues')
+                    plt.draw()
+                    plt.show()
+                    # save figure to file
+                    plt.savefig("spectrum.png")          
+                    
+                    
+                y_coordinates = spec.Spectrum
                 
-            if start_flake_thread: #start thread that activates the solenoid valves and seperates the flake
-                _thread.start_new_thread(flake_tracking, (index_open_probe, flake_delay))
+
+                maximum_intensity = np.max(y_coordinates)
+
+                if maximum_intensity > 300:
+                    
+                    #x > 900, x < 1300 || x > 1150, x < 1750
+                    if any(np.logical_and(x > maximum_intensity*0.2, x < maximum_intensity*0.3) for x in y_coordinates[subcoords_pp0]) and any(np.logical_and(x > maximum_intensity*0.4, x < maximum_intensity*0.5) for x in y_coordinates[subcoords_pp1]): #if any value in the array exceeds the threshhold, a material is identified
+                        start_flake_thread = True #True if the material needs to be sorted out, false if not
+                        print("pp")
+
+                    #x > 300, x < 600 || x > 700, x < 1000    
+                    elif any(np.logical_and(x > maximum_intensity*0.15, x < maximum_intensity*0.2) for x in y_coordinates[subcoords_pe0]) and any(np.logical_and(x > maximum_intensity*0.5, x < maximum_intensity*0.5) for x in y_coordinates[subcoords_pe1]): #if any value in the array exceeds the threshhold, a material is identified
+                        start_flake_thread = True
+                        print("pe")
+                    
+
+                    #elif any(x > spectrum_threshold for x in y_coordinates[subcoords_pvc]): #if any value in the array exceeds the threshhold, a material is identified
+                    #    start_flake_thread = True
+                        #print("pvc")
+                            
+                    else: #alse no material is identified
+                        start_flake_thread = False
+                    
+                        
+                    if start_flake_thread: #start thread that activates the solenoid valves and seperates the flake
+                        _thread.start_new_thread(flake_tracking, (index_open_probe, flake_delay))
                 
-               
         
             
     except KeyboardInterrupt: #when pressing ctrl + c, the code is stopped and correctly shut down
@@ -198,46 +183,47 @@ def main(line, line_check, flake_delay):
         q.close() # Close spectrometer connection
         
 
-   
-    
-
-
 
 #thread for tracking flakes
 def flake_tracking(index_open_valve, flake_delay):
     
-    #global flake_delay #time between identifying flake and activating solenoid valve
     
-    #print("index")
     #print(index_open_valve)
     if index_open_valve == '0':
         #gpio_open_valve = solenoid_pin0
-        print("probe 0")
+        #ser_potato.Write("probe 0")
+        print('probe 0')
     
     elif index_open_valve == '1':
         #gpio_open_valve = solenoid_pin1                                                  
-        print("probe 1")
+        #ser_potato.Write("probe 1")
+        print('probe 1')
 
     elif index_open_valve == '2':
         #gpio_open_valve = solenoid_pin2
-        print("probe 2")
+        #ser_potato.Write("probe 2")
+        print('probe 2')
     
     elif index_open_valve == '3':
         #gpio_open_valve = solenoid_pin3
-        print("probe 3")
+        #ser_potato.Write("probe 3")
+        print('probe 3')
     
     elif index_open_valve == '4':
         #gpio_open_valve = solenoid_pin4
-        print("probe 4")
-    
+        #ser_potato.Write("probe 4")
+        print('probe 4')
+
     elif index_open_valve == '5':
         #gpio_open_valve = solenoid_pin5
-        print("probe 5")
+        #ser_potato.Write("probe 5")
+        print('probe 5')
     
     elif index_open_valve == '6':
         #gpio_open_valve = solenoid_pin6
-        print("probe 6")
-
+        #ser_potato.Write("probe 6")
+        print('probe 6')
+    
 
     time.sleep(flake_delay)
     #gpio_open_valve.output(1) #activate solenoid valve
@@ -267,13 +253,13 @@ def flake_tracking(index_open_valve, flake_delay):
 
 
 
-#lightsensor_pin0 = IN('GPIOX_12') # set pin GPIOX_12 to be used as an input
-#lightsensor_pin1 = IN('GPIOX_13')
-#lightsensor_pin2 = IN('GPIOX_14')
-#lightsensor_pin3 = IN('GPIOX_15')
-#lightsensor_pin4 = IN('GPIOX_0')
-#lightsensor_pin5 = IN('GPIOX_10') 
-#lightsensor_pin6 = IN('GPIOX_1') 
+#lightsensor_pin0 = IN('GPIOX_0') # set pin GPIOX_12 to be used as an input
+#lightsensor_pin1 = IN('GPIOX_10')
+#lightsensor_pin2 = IN('GPIOX_1')
+#lightsensor_pin3 = IN('GPIOX_16')
+#lightsensor_pin4 = IN('GPIOX_2')
+#lightsensor_pin5 = IN('GPIOX_3') 
+#lightsensor_pin6 = IN('GPIOX_4') 
 
 #solenoid_pin0 = OUT('GPIOX_8') # set pin GPIOX_8 to be used as an output
 #solenoid_pin1 = OUT('GPIOX_9') 
@@ -289,9 +275,10 @@ def flake_tracking(index_open_valve, flake_delay):
 flake_delay = 13
 #delay of activating solenoid valve in seconds
 
-line_check = 10 #set arbitrary value that isn't between 0 and 6
+serial_check = 10 #arduino read, set arbitrary value that isn't between 0 and 6
 
-line = 20 #set arbitrary value that isn't between 0 and 6 and not equal to line_check
+index_open_probe = 20 #set arbitrary value that isn't between 0 and 6 and not equal to serial_check
+
 
 print("Demo program started.")
 print("rgbdriverkit version: " + rgbdriverkit.__version__)
@@ -301,7 +288,6 @@ if (dev != None):
     print("Device found.")
 else:
     #cleanup() #reset gpio pins
-    #q.close() # Close device connection
     sys.exit("No device found.")
 
 q = Qseries(dev[0]) # Create instance of first spectrometer found
@@ -316,8 +302,6 @@ q.open() # Open device connection
 print("Software version: " + q.software_version)
 print("Hardware version: " + q.hardware_version)
 
-nm = q.get_wavelengths()
-
 # Set exposure time and averaging
 q.exposure_time = 0.025 # in seconds
 q.averaging = 1 # number of measurements per spectrum
@@ -326,10 +310,24 @@ print("Starting exposure with t=" + str(q.exposure_time) + "s" + ", and averagin
 
 q.processing_steps = (SpectrometerProcessing.AdjustOffset)
 
-if __name__ == '__main__':
-    ser = serial.Serial(port = 'COM4', timeout=0)
-    ser.reset_input_buffer()
+x_coordinates = q.get_wavelengths()
 
+#to add more peaks/ranges to check -> np.logical_or(np.logical_or(np.logical_and(x), y), z) -- where y and z can each contain an np.logical_or and np.logical_and statement
+subcoords_pp0 = [index for index,value in enumerate(x_coordinates) if np.logical_and(value > 1180, value < 1240)] #get index of wavelengths in the spectrum
+subcoords_pp1 = [index for index,value in enumerate(x_coordinates) if np.logical_and(value > 1530, value < 1550)]
+subcoords_pe0 = [index for index,value in enumerate(x_coordinates) if np.logical_and(value > 1180, value < 1240)] #get index of wavelengths in the spectrum
+subcoords_pe1 = [index for index,value in enumerate(x_coordinates) if np.logical_and(value > 1530, value < 1550)]
+#subcoords_pvc = [index for index,value in enumerate(x_coordinates) if np.logical_and(value > 1400, value < 1600)] #get index of wavelengths in the spectrum 
+                            
+#print("range")
+#print(y_coordinates[subcoords])
+
+
+if __name__ == '__main__':
+    ser_arduino = serial.Serial('/dev/ttyACM0', 115200, timeout=0)
+    ser_arduino.reset_input_buffer()
+
+    #ser_potato = serial.Serial('/dev/ttyS0', 115200, serial.PARITY_NONE, serial. STOPBITS_ONE, serial. EIGHTBITS, timeout=0)
 
 #start the program
-main(line, line_check, flake_delay)
+main(index_open_probe, serial_check, flake_delay, subcoords_pp0, subcoords_pp1, subcoords_pe0, subcoords_pe1)
